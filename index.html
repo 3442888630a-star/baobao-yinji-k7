@@ -107,6 +107,10 @@
       <span class="switch"><input type="checkbox" id="cutLine"><span class="track"></span></span>
     </div>
     <div class="note">打开后，导出的图上会在要裁开的位置印一条很淡的线，照着线裁就行；关掉则成品图干干净净（预览里的虚线一直都在，只是帮你看位置）。</div>
+    <div class="row" style="margin-top:12px"><label>高清导出（2倍像素）</label>
+      <span class="switch"><input type="checkbox" id="hiRes" checked><span class="track"></span></span>
+    </div>
+    <div class="note">打开后拼版成品是 3600×2400 像素（每张照片 1800×2400），像素多一倍，放大打印、或者裁开后单独打大一点都更清晰；文件会大一些、生成稍慢。打印时还是选 6寸、横向、满版，不用改。批量拼版也跟着这个开关走。</div>
   </div>
 </div>
 
@@ -121,7 +125,7 @@
       <button class="chip" data-kind="duo">拼版 · 两张拼一张</button>
       <button class="chip" data-kind="big2">拼版 · 三张拼一张</button>
     </div>
-    <div class="note" style="margin-top:10px">每张照片的日期都自动读好了，不对的可以改。下面的水印样式、颜色等设置，对所有照片都一样；小名也会带上，一句话和身高体重是单张模式里逐张填的，批量时不带。选拼版时，按你选照片的顺序两张（或三张）一组自动拼成6寸图，中间留白和四周留白用你上次拼版时的设置；最后一组不够数时，用那一组最后一张照片补齐空位。</div>
+    <div class="note" style="margin-top:10px">每张照片的日期都自动读好了，不对的可以改。下面的水印样式、颜色等设置，对所有照片都一样；小名也会带上，一句话和身高体重是单张模式里逐张填的，批量时不带。选拼版时，按你选照片的顺序两张（或三张）一组自动拼成6寸图，中间留白、四周留白和高清导出都用拼版模式里的设置；最后一组不够数时，用那一组最后一张照片补齐空位。</div>
     <button id="batchGo" style="display:block;width:100%;margin-top:12px;padding:13px;border:none;border-radius:12px;background:#b3813c;color:#fff;font-size:16px;font-weight:600;cursor:pointer">全部生成并保存</button>
     <div class="note" id="batchStatus" style="margin-top:8px"></div>
   </div>
@@ -329,6 +333,9 @@ let cutLineOn=false;
 try{cutLineOn=localStorage.getItem('babyCut')==='1';}catch(e){}
 let exportMode=false;
 const DUO_W=1800, DUO_H=1200, CELL_W=900, CELL_H=1200;
+let duoScale=1;
+let hiResOn=true;
+try{hiResOn=localStorage.getItem('babyHiRes')!=='0';}catch(e){}
 let duoGap=60;
 try{const g=parseInt(localStorage.getItem('babyGap'));if(!isNaN(g)&&g>=0&&g<=180)duoGap=g;}catch(e){}
 function ageDataFor(pdStr){
@@ -352,8 +359,8 @@ function renderCell(ctx,im,d,W,H){
   if(d){ drawFns[styleId](ctx,W,H,{...d,stripTop}); drawMilestone(ctx,W,H,d.milestone,d.scale); }
 }
 function duoCells(){
-  const mPx=Math.round(marginMm*300/25.4);
-  const innerW=DUO_W-2*mPx, innerH=DUO_H-2*mPx, g=duoGap;
+  const mPx=Math.round(marginMm*300/25.4*duoScale);
+  const innerW=DUO_W*duoScale-2*mPx, innerH=DUO_H*duoScale-2*mPx, g=duoGap*duoScale;
   if(layout==='big2'){
     const w1=Math.round((innerW-g)*0.55);
     const w2=innerW-g-w1;
@@ -372,8 +379,8 @@ function duoCells(){
 }
 function redrawDuo(){
   const cv=$('cv'),ctx=cv.getContext('2d');
-  cv.width=DUO_W;cv.height=DUO_H;
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,DUO_W,DUO_H);
+  cv.width=DUO_W*duoScale;cv.height=DUO_H*duoScale;
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,cv.width,cv.height);
   const {cells}=duoCells();
   const dateEls=[$('duoDate1'),$('duoDate2'),$('duoDate3')];
   const lines=[];
@@ -390,21 +397,21 @@ function redrawDuo(){
     }else{
       ctx.fillStyle='#f8f3e8';ctx.fillRect(0,0,cell.w,cell.h);
       ctx.fillStyle='#a29885';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.font='44px sans-serif';
+      ctx.font=(44*duoScale)+'px sans-serif';
       ctx.fillText('第'+(i+1)+'张照片',cell.w/2,cell.h/2);
       lines.push('第'+(i+1)+'张：还没选');
     }
     ctx.restore();
   });
   const guides=(style,width,dashed)=>{
-    ctx.save();ctx.strokeStyle=style;ctx.lineWidth=width;ctx.setLineDash(dashed?[20,14]:[]);
+    ctx.save();ctx.strokeStyle=style;ctx.lineWidth=width;ctx.setLineDash(dashed?[20*duoScale,14*duoScale]:[]);
     const c=cells;
-    ctx.beginPath();ctx.moveTo(c[1].x-duoGap/2,c[0].y);ctx.lineTo(c[1].x-duoGap/2,c[0].y+c[0].h);ctx.stroke();
-    if(layout==='big2'){ctx.beginPath();ctx.moveTo(c[1].x,c[2].y-duoGap/2);ctx.lineTo(c[1].x+c[1].w,c[2].y-duoGap/2);ctx.stroke();}
+    ctx.beginPath();ctx.moveTo(c[1].x-duoGap*duoScale/2,c[0].y);ctx.lineTo(c[1].x-duoGap*duoScale/2,c[0].y+c[0].h);ctx.stroke();
+    if(layout==='big2'){ctx.beginPath();ctx.moveTo(c[1].x,c[2].y-duoGap*duoScale/2);ctx.lineTo(c[1].x+c[1].w,c[2].y-duoGap*duoScale/2);ctx.stroke();}
     ctx.restore();
   };
-  if(!exportMode){ guides('rgba(60,50,35,0.45)',3,true); }
-  else if(cutLineOn){ guides('rgba(0,0,0,0.16)',3,false); }
+  if(!exportMode){ guides('rgba(60,50,35,0.45)',3*duoScale,true); }
+  else if(cutLineOn){ guides('rgba(0,0,0,0.16)',3*duoScale,false); }
   $('duoAgeLine').style.display='block';
   $('duoAgeLine').textContent=lines.join('　·　');
 }
@@ -537,7 +544,7 @@ function setMode(m){
     $('ageLine').style.display='none';
     $('printChips').style.display='none';
     $('printVal').textContent='6寸拼版';
-    $('printNote').textContent='固定生成 1800×1200 像素（6寸横版，300 dpi）；中间留白在上面选照片的地方拉条调。';
+    $('printNote').textContent='6寸横版；开高清导出时生成 3600×2400 像素，关时 1800×1200 像素；中间留白在上面选照片的地方拉条调。';
     $('fitRow').style.display='block';
     $('again').style.display='none';
     if(duoImgs[0]||duoImgs[1]||duoImgs[2]){$('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';redrawDuo();}
@@ -669,8 +676,9 @@ $('batchGo').onclick=async ()=>{
       }
       const bad=grp.map(it=>ageDataFor(it.dateStr)).find(b=>b.err);
       if(bad){status.textContent='第'+(g+1)+'组跳过了：'+bad.err;continue;}
-      exportMode=true;redrawDuo();exportMode=false;
+      duoScale=hiResOn?2:1;exportMode=true;redrawDuo();exportMode=false;
       const url=$('cv').toDataURL('image/jpeg',1.0);
+      duoScale=1;
       const imEl=document.createElement('img');imEl.src=url;imEl.alt='第'+(g+1)+'组拼版成品';
       results.appendChild(imEl);
       try{const a=document.createElement('a');a.download='宝宝水印-6寸拼版-'+grp[0].dateStr+'-第'+(g+1)+'组.jpg';a.href=url;a.click();}catch(e){}
@@ -742,6 +750,8 @@ $('swapBtn').onclick=()=>{
 };
 $('cutLine').checked=cutLineOn;
 $('cutLine').addEventListener('change',()=>{cutLineOn=$('cutLine').checked;try{localStorage.setItem('babyCut',cutLineOn?'1':'0');}catch(e){}hideResult();});
+$('hiRes').checked=hiResOn;
+$('hiRes').addEventListener('change',()=>{hiResOn=$('hiRes').checked;try{localStorage.setItem('babyHiRes',hiResOn?'1':'0');}catch(e){}hideResult();});
 $('duoDate1').addEventListener('change',()=>{hideResult();redraw();});
 $('duoDate2').addEventListener('change',()=>{hideResult();redraw();});
 $('copySame').onclick=()=>{
@@ -770,8 +780,9 @@ $('save').onclick=()=>{
     const bs=[$('duoDate1'),$('duoDate2'),$('duoDate3')].slice(0,needN).map(el=>ageDataFor(el.value));
     const bad=bs.find(b=>b.err);
     if(bad){alert(bad.err);return;}
-    exportMode=true;redrawDuo();exportMode=false;
+    duoScale=hiResOn?2:1;exportMode=true;redrawDuo();exportMode=false;
     const urlDuo=$('cv').toDataURL('image/jpeg',1.0);
+    duoScale=1;
     $('resultImg').src=urlDuo;
     $('resultBox').style.display='block';
     $('resultBox').querySelector('.hint').textContent=layout==='big2'?'拼版图好了，长按图片保存。打印选 6寸、横向、满版，这一版不用裁开':'拼版图好了，长按图片保存。打印选 6寸、横向、满版，沿正中间裁开就是两张 4寸';
