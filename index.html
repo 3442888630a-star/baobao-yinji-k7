@@ -154,6 +154,18 @@
   <input type="range" id="scale" min="60" max="160" step="5" value="100">
   <div class="row"><label>文字颜色</label></div>
   <div class="swatches" id="swatches"></div>
+  <div class="divider"></div>
+  <div class="row"><label>照片调色</label><button id="adjReset" style="border:1px solid #d8cbb4;background:#fff;color:#8a6d3b;border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer">恢复原图</button></div>
+  <div class="row"><label>曝光</label><span class="val" id="evVal">0</span></div>
+  <input type="range" id="adjEv" min="-50" max="50" step="1" value="0">
+  <div class="row"><label>对比度</label><span class="val" id="ctVal">0</span></div>
+  <input type="range" id="adjCt" min="-50" max="50" step="1" value="0">
+  <div class="row"><label>饱和度</label><span class="val" id="satVal">0</span></div>
+  <input type="range" id="adjSat" min="-50" max="50" step="1" value="0">
+  <div class="row"><label>色温</label><span class="val" id="tempVal">0</span></div>
+  <input type="range" id="adjTemp" min="-50" max="50" step="1" value="0">
+  <div class="note">色温往右更暖（偏黄）、往左更冷（偏蓝）。调色对单张、拼版、批量都生效，先调色再盖水印；不想要了点「恢复原图」。</div>
+  <div class="note" id="adjNote" style="display:none">你现在这个浏览器不支持曝光、对比度、饱和度三项（色温可以用），换 Chrome 打开这个页面就全有了。</div>
   <div class="row"><label>显示累计天数</label>
     <span class="switch"><input type="checkbox" id="showDays"><span class="track"></span></span>
   </div>
@@ -290,19 +302,43 @@ function printTarget(){
   const h=landscape?spec[2]:spec[3];
   return {id:spec[0],label:spec[1],w,h,mm:spec[4]};
 }
+let adj={ev:0,ct:0,sat:0,temp:0};
+const adjFilterOK=(()=>{try{const x=document.createElement('canvas').getContext('2d');x.filter='brightness(1.05)';return typeof x.filter==='string'&&x.filter.indexOf('brightness')>-1;}catch(e){return false}})();
+function adjFilter(){
+  if(!adjFilterOK||(!adj.ev&&!adj.ct&&!adj.sat)) return '';
+  const b=Math.pow(2,adj.ev/50).toFixed(3);
+  const c=Math.max(0.05,1+adj.ct/50).toFixed(3);
+  const st=Math.max(0,1+adj.sat/50).toFixed(3);
+  return 'brightness('+b+') contrast('+c+') saturate('+st+')';
+}
+function drawAdj(ctx,im,sx,sy,sw,sh,dx,dy,dw,dh){
+  ctx.save();
+  const f=adjFilter();
+  if(f) ctx.filter=f;
+  ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
+  ctx.restore();
+  if(adj.temp){
+    ctx.save();
+    ctx.globalCompositeOperation='overlay';
+    ctx.globalAlpha=Math.abs(adj.temp)/50*0.3;
+    ctx.fillStyle=adj.temp>0?'rgb(255,150,50)':'rgb(70,120,255)';
+    ctx.fillRect(dx,dy,dw,dh);
+    ctx.restore();
+  }
+}
 function drawImageCover(ctx,dx,dy,dw,dh){
   const iw=img.naturalWidth,ih=img.naturalHeight;
   const srcRatio=iw/ih,dstRatio=dw/dh;
   let sx=0,sy=0,sw=iw,sh=ih;
   if(srcRatio>dstRatio){sw=Math.round(ih*dstRatio);sx=Math.round((iw-sw)/2);}
   else if(srcRatio<dstRatio){sh=Math.round(iw/dstRatio);sy=Math.round((ih-sh)/2);}
-  ctx.drawImage(img,sx,sy,sw,sh,dx,dy,dw,dh);
+  drawAdj(ctx,img,sx,sy,sw,sh,dx,dy,dw,dh);
 }
 function drawImageContain(ctx,dx,dy,dw,dh){
   const iw=img.naturalWidth,ih=img.naturalHeight;
   const k=Math.min(dw/iw,dh/ih);
   const w=Math.round(iw*k),h=Math.round(ih*k);
-  ctx.drawImage(img,dx+Math.round((dw-w)/2),dy+Math.round((dh-h)/2),w,h);
+  drawAdj(ctx,img,0,0,iw,ih,dx+Math.round((dw-w)/2),dy+Math.round((dh-h)/2),w,h);
 }
 function drawInto(ctx,dx,dy,dw,dh){
   if(fitMode==='fit') drawImageContain(ctx,dx,dy,dw,dh); else drawImageCover(ctx,dx,dy,dw,dh);
@@ -313,13 +349,13 @@ function coverFor(ctx,im,dx,dy,dw,dh){
   let sx=0,sy=0,sw=iw,sh=ih;
   if(srcRatio>dstRatio){sw=Math.round(ih*dstRatio);sx=Math.round((iw-sw)/2);}
   else if(srcRatio<dstRatio){sh=Math.round(iw/dstRatio);sy=Math.round((ih-sh)/2);}
-  ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
+  drawAdj(ctx,im,sx,sy,sw,sh,dx,dy,dw,dh);
 }
 function containFor(ctx,im,dx,dy,dw,dh){
   const iw=im.naturalWidth,ih=im.naturalHeight;
   const k=Math.min(dw/iw,dh/ih);
   const w=Math.round(iw*k),h=Math.round(ih*k);
-  ctx.drawImage(im,dx+Math.round((dw-w)/2),dy+Math.round((dh-h)/2),w,h);
+  drawAdj(ctx,im,0,0,iw,ih,dx+Math.round((dw-w)/2),dy+Math.round((dh-h)/2),w,h);
 }
 function drawIntoFor(ctx,im,dx,dy,dw,dh){
   if(fitMode==='fit') containFor(ctx,im,dx,dy,dw,dh); else coverFor(ctx,im,dx,dy,dw,dh);
@@ -449,7 +485,7 @@ $('babyName').addEventListener('input',()=>{localStorage.setItem('babyName',$('b
 ['babyHeight','babyWeight','customText'].forEach(id=>$(id).addEventListener('input',()=>{hideResult();redraw();}));
 const savedBirth=localStorage.getItem('babyBirth');
 if(savedBirth) $('birth').value=savedBirth;
-function persist(){localStorage.setItem('wmSettings',JSON.stringify({scale:+$('scale').value,showDays:$('showDays').checked,printSize:printSize,fitMode:fitMode,marginMm:marginMm,milestone:milestoneOn}));}
+function persist(){localStorage.setItem('wmSettings',JSON.stringify({scale:+$('scale').value,showDays:$('showDays').checked,printSize:printSize,fitMode:fitMode,marginMm:marginMm,milestone:milestoneOn,adj:adj}));}
 $('birth').addEventListener('change',()=>{localStorage.setItem('babyBirth',$('birth').value);hideResult();redraw();if(mode==='batch'&&batchItems.length)renderBatchList();});
 $('photoDate').addEventListener('change',()=>{$('dateNote').textContent='手动设置的照片日期';hideResult();redraw();});
 $('scale').addEventListener('input',()=>{$('scaleVal').textContent=$('scale').value+'%';persist();hideResult();redraw();});
@@ -458,6 +494,13 @@ $('marginRange').value=marginMm;$('marginVal').textContent=marginMm+' mm';
 $('marginRange').addEventListener('input',()=>{marginMm=+$('marginRange').value;$('marginVal').textContent=marginMm+' mm';persist();hideResult();redraw();});
 $('milestone').checked=milestoneOn;
 $('milestone').addEventListener('change',()=>{milestoneOn=$('milestone').checked;persist();hideResult();redraw();});
+if(saved.adj){adj={ev:+saved.adj.ev||0,ct:+saved.adj.ct||0,sat:+saved.adj.sat||0,temp:+saved.adj.temp||0};}
+const adjUI=[['adjEv','ev','evVal'],['adjCt','ct','ctVal'],['adjSat','sat','satVal'],['adjTemp','temp','tempVal']];
+function syncAdjUI(){adjUI.forEach(([id,k,vid])=>{$(id).value=adj[k];$(vid).textContent=(adj[k]>0?'+':'')+adj[k];});}
+adjUI.forEach(([id,k])=>{$(id).addEventListener('input',()=>{adj[k]=+$(id).value;syncAdjUI();persist();hideResult();redraw();});});
+$('adjReset').onclick=()=>{adj={ev:0,ct:0,sat:0,temp:0};syncAdjUI();persist();hideResult();redraw();};
+if(!adjFilterOK)$('adjNote').style.display='block';
+syncAdjUI();
 $('pick').onclick=()=>$('file').click();
 $('again').onclick=()=>$('file').click();
 $('file').addEventListener('change',async e=>{
@@ -523,7 +566,7 @@ function drawOnly(d){
   if(styleId==='polaroid'&&d){const side=Math.round(cw*0.06);const bottom=Math.round(cw*0.26);px=side;py=side;stripTop=side+ch;cw+=side*2;ch+=side+bottom;}
   cv.width=cw;cv.height=ch;
   if(styleId==='polaroid'&&d){ctx.fillStyle='#fffdf8';ctx.fillRect(0,0,cw,ch);}
-  ctx.drawImage(img,px,py,Math.round(w*k),Math.round(h*k));
+  drawAdj(ctx,img,0,0,w,h,px,py,Math.round(w*k),Math.round(h*k));
   if(d){ drawFns[styleId](ctx,cw,ch,{...d,stripTop}); drawMilestone(ctx,cw,ch,d.milestone,d.scale); }
 }
 
