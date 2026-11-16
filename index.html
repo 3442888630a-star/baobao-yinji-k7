@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>宝宝成长水印</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f7f1e5; color: #3d3831; padding: 18px 16px 48px; }
+  .hero { background: linear-gradient(135deg, #f7e8cd, #f2dcb4 60%, #ecd3a4); border-radius: 18px; padding: 22px 20px 18px; box-shadow: 0 8px 22px rgba(160,120,50,.16); }
+  h1 { font-size: 23px; color: #4a3a22; letter-spacing: 1px; }
+  .sub { color: #8a7350; font-size: 13px; margin-top: 7px; line-height: 1.6; }
+  .card { background: #fff; border-radius: 16px; padding: 16px 18px; margin-top: 14px; box-shadow: 0 6px 18px rgba(160,120,50,.08); }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; font-size: 15px; }
+  .row label { font-weight: 600; }
+  input[type="date"] { font-size: 15px; color: #b3813c; border: none; background: transparent; text-align: right; font-family: inherit; }
+  .note { font-size: 12px; color: #9a917f; }
+  #ageLine { display: none; margin-top: 10px; background: #faf3e6; border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #6b6257; }
+  #ageLine b { color: #b3813c; }
+  #pick { display: block; width: 100%; height: 190px; margin-top: 14px; border: 2px dashed #d8cbb4; border-radius: 16px; background: #fffdf8; color: #3d3831; font-size: 17px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 18px rgba(160,120,50,.07); }
+  #pick .plus { font-size: 34px; color: #c9a86a; display: block; margin-bottom: 6px; }
+  #pick small { display: block; margin-top: 8px; font-weight: 400; font-size: 12px; color: #9a917f; }
+  #cvWrap { display: none; margin-top: 14px; border-radius: 16px; overflow: hidden; background: #eee7da; box-shadow: 0 10px 26px rgba(90,70,40,.18); }
+  canvas { display: block; width: 100%; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .chip { flex: 0 0 auto; padding: 9px 17px; border-radius: 999px; background: #f3ecdf; color: #6b6257; font-size: 14px; border: none; cursor: pointer; }
+  .chip.on { background: #b3813c; color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(179,129,60,.35); }
+  .divider { height: 1px; background: #f1e9da; margin: 14px 0 6px; }
+  input[type="range"] { width: 100%; accent-color: #b3813c; margin: 6px 0 4px; }
+  .val { color: #b3813c; font-weight: 600; font-size: 14px; }
+  .swatches { display: flex; gap: 12px; align-items: center; padding: 6px 0 4px; flex-wrap: wrap; }
+  .sw { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(0,0,0,.10); cursor: pointer; padding: 0; }
+  .sw.on { border: 3px solid #b3813c; transform: scale(1.14); }
+  .custom { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6b6257; }
+  input[type="color"] { width: 34px; height: 34px; border: none; background: none; padding: 0; cursor: pointer; }
+  .switch { position: relative; width: 48px; height: 28px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 100%; height: 100%; position: absolute; margin: 0; cursor: pointer; }
+  .track { position: absolute; inset: 0; background: #ddd2bf; border-radius: 999px; transition: .2s; pointer-events: none; }
+  .track::after { content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #fff; top: 3px; left: 3px; transition: .2s; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .switch input:checked + .track { background: #b3813c; }
+  .switch input:checked + .track::after { left: 23px; }
+  .pick2 { display: block; width: 100%; height: 104px; margin-top: 12px; border: 2px dashed #d8cbb4; border-radius: 16px; background: #fffdf8; color: #3d3831; font-size: 16px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 18px rgba(160,120,50,.07); }
+  .pick2 .plus { font-size: 26px; color: #c9a86a; display: block; margin-bottom: 4px; }
+  .pick2 small { display: block; margin-top: 6px; font-weight: 400; font-size: 12px; color: #9a917f; }
+  .pick2.done { border-style: solid; border-color: #b3813c; background: #faf3e6; }
+  #batchResults img { width: 100%; border-radius: 12px; margin-top: 12px; display: block; }
+  .brow { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; color: #6b6257; }
+  .brow input[type="date"] { flex: 1; min-width: 0; }
+  .brow .bage { font-size: 12px; color: #a07d3c; white-space: nowrap; }
+  .txtin { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid #e3d9c6; border-radius: 10px; font-size: 15px; background: #fffdf8; color: #3d3831; }
+  .numin { width: 76px; padding: 9px 8px; border: 1px solid #e3d9c6; border-radius: 10px; font-size: 15px; background: #fffdf8; color: #3d3831; }
+  .btns { display: none; gap: 10px; margin-top: 16px; }
+  .btns button { flex: 1; padding: 14px 0; border-radius: 999px; font-size: 16px; cursor: pointer; }
+  #again { background: #fff; border: 1px solid #ddd2bf; color: #6b6257; }
+  #save { background: #b3813c; border: none; color: #fff; font-weight: 600; box-shadow: 0 8px 20px rgba(179,129,60,.35); }
+  #resultBox { display: none; margin-top: 18px; text-align: center; }
+  #resultBox .hint { font-size: 15px; font-weight: 600; color: #b3813c; margin-bottom: 10px; }
+  #resultBox img { width: 100%; border-radius: 16px; box-shadow: 0 10px 26px rgba(90,70,40,.2); }
+  .tips { margin-top: 20px; font-size: 12px; line-height: 1.8; color: #a29885; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>宝宝成长水印</h1>
+  <p class="sub">选照片、填出生日期，自动按拍摄时间算出宝宝多大，盖上好看的水印。字号、颜色、天数都能自己调。</p>
+</div>
+
+<div class="card">
+  <div class="row"><label>做图方式</label></div>
+  <div class="chips" id="modeChips">
+    <button class="chip on" data-mode="single">单张照片</button>
+    <button class="chip" data-mode="duo">拼版 · 拼成一张6寸</button>
+    <button class="chip" data-mode="batch">批量 · 一次做多张</button>
+  </div>
+  <div class="note" id="modeNote" style="margin-top:8px">一张一张做，尺寸在下面选。</div>
+</div>
+
+<input type="file" id="file" accept="image/*" hidden>
+<button id="pick"><span class="plus">＋</span>选择宝宝照片<small>从相册选一张</small></button>
+<div id="cvWrap"><canvas id="cv"></canvas></div>
+<div id="previewNote" class="note" style="display:none;text-align:center;margin-top:6px"></div>
+
+<div id="duoBox" style="display:none">
+  <input type="file" id="file1" accept="image/*" hidden>
+  <input type="file" id="file2" accept="image/*" hidden>
+  <input type="file" id="file3" accept="image/*" hidden>
+  <button class="pick2" id="pick1"><span class="plus">＋</span>第一张照片<small>拼在左边 · 点这里选，选错了再点一次可重选</small></button>
+  <button class="pick2" id="pick2"><span class="plus">＋</span>第二张照片<small>拼在右边 · 点这里选，选错了再点一次可重选</small></button>
+  <button class="pick2" id="pick3" style="display:none"><span class="plus">＋</span>第三张照片<small>拼在右下 · 点这里选，选错了再点一次可重选</small></button>
+  <button id="copySame" style="display:block;width:100%;margin-top:10px;padding:11px;border:1px solid #d8cbb4;border-radius:12px;background:#fff;color:#8a6d3b;font-size:14px;cursor:pointer">第二张用第一张 · 同一张照片印两份</button>
+  <button id="swapBtn" style="display:block;width:100%;margin-top:10px;padding:11px;border:1px solid #d8cbb4;border-radius:12px;background:#fff;color:#8a6d3b;font-size:14px;cursor:pointer">⇄ 交换第一张和第二张的位置</button>
+  <div class="card">
+    <div class="row"><label>拼版布局</label></div>
+    <div class="chips" id="layoutChips">
+      <button class="chip on" data-layout="duo">左右对半 · 两张</button>
+      <button class="chip" data-layout="big2">左大右小 · 三张</button>
+    </div>
+    <div class="row" style="margin-top:10px"><label>第一张照片日期</label><input type="date" id="duoDate1"></div>
+    <div class="row"><label>第二张照片日期</label><input type="date" id="duoDate2"></div>
+    <div class="row" id="duoDate3Row" style="display:none"><label>第三张照片日期</label><input type="date" id="duoDate3"></div>
+    <div class="note">两张照片各按自己的拍摄日期算年龄，日期会自动读，读不到或不对可以手动改。</div>
+    <div id="duoAgeLine" style="display:none;margin-top:10px;background:#faf3e6;border-radius:10px;padding:10px 12px;font-size:14px;color:#6b6257"></div>
+    <div class="row" style="margin-top:14px"><label>中间留白</label><span class="val" id="gapVal">约 5 mm</span></div>
+    <input type="range" id="gapRange" min="0" max="180" step="10" value="60">
+    <div class="note">两张照片中间空一条白边，整张图还是6寸大小不变。印出来沿白边正中间裁开，每张仍是4寸宽，只是照片内侧会带一点点白边，留白拉得越大白边越宽。</div>
+    <div class="row" style="margin-top:12px"><label>成品图带裁切线</label>
+      <span class="switch"><input type="checkbox" id="cutLine"><span class="track"></span></span>
+    </div>
+    <div class="note">打开后，导出的图上会在要裁开的位置印一条很淡的线，照着线裁就行；关掉则成品图干干净净（预览里的虚线一直都在，只是帮你看位置）。</div>
+  </div>
+</div>
+
+<div id="batchBox" style="display:none">
+  <input type="file" id="fileBatch" accept="image/*" multiple hidden>
+  <button class="pick2" id="pickBatch"><span class="plus">＋</span>一次选多张照片<small>十几张也行，一张一张自动做好</small></button>
+  <div class="card" id="batchCard" style="display:none">
+    <div id="batchList"></div>
+    <div class="row" style="margin-top:12px"><label>生成方式</label></div>
+    <div class="chips" id="batchKindChips">
+      <button class="chip on" data-kind="single">逐张加水印</button>
+      <button class="chip" data-kind="duo">拼版 · 两张拼一张</button>
+      <button class="chip" data-kind="big2">拼版 · 三张拼一张</button>
+    </div>
+    <div class="note" style="margin-top:10px">每张照片的日期都自动读好了，不对的可以改。下面的水印样式、颜色等设置，对所有照片都一样；小名也会带上，一句话和身高体重是单张模式里逐张填的，批量时不带。选拼版时，按你选照片的顺序两张（或三张）一组自动拼成6寸图，中间留白和四周留白用你上次拼版时的设置；最后一组不够数时，用那一组最后一张照片补齐空位。</div>
+    <button id="batchGo" style="display:block;width:100%;margin-top:12px;padding:13px;border:none;border-radius:12px;background:#b3813c;color:#fff;font-size:16px;font-weight:600;cursor:pointer">全部生成并保存</button>
+    <div class="note" id="batchStatus" style="margin-top:8px"></div>
+  </div>
+  <div id="batchResults"></div>
+</div>
+
+<div class="card">
+  <div class="row"><label>宝宝出生日期</label><input type="date" id="birth"></div>
+  <div class="row"><label>宝宝小名（可选）</label><input type="text" id="babyName" class="txtin" placeholder="如：朵朵" maxlength="10"></div>
+  <div class="row" id="photoDateRow"><label>照片日期</label><input type="date" id="photoDate"></div>
+  <div class="note" id="dateNote">照片日期会自动读照片的拍摄时间，读不到时用今天，也可以手动改。</div>
+  <div id="hwRow">
+    <div class="row"><label>身高 / 体重（可选）</label><span><input type="number" id="babyHeight" class="numin" placeholder="身高" inputmode="decimal"> cm&nbsp; <input type="number" id="babyWeight" class="numin" placeholder="体重" inputmode="decimal"> kg</span></div>
+  </div>
+  <div id="customRow">
+    <div class="row"><label>想写的一句话（可选）</label><input type="text" id="customText" class="txtin" placeholder="如：第一次自己翻身" maxlength="20"></div>
+  </div>
+  <div id="ageLine"></div>
+</div>
+
+<div class="card" id="styleCard" style="display:none">
+  <div class="row"><label>水印样式</label></div>
+  <div class="chips" id="chips"></div>
+  <div class="divider"></div>
+  <div class="row"><label>文字大小</label><span class="val" id="scaleVal">100%</span></div>
+  <input type="range" id="scale" min="60" max="160" step="5" value="100">
+  <div class="row"><label>文字颜色</label></div>
+  <div class="swatches" id="swatches"></div>
+  <div class="row"><label>显示累计天数</label>
+    <span class="switch"><input type="checkbox" id="showDays"><span class="track"></span></span>
+  </div>
+  <div class="row"><label>里程碑小徽章</label>
+    <span class="switch"><input type="checkbox" id="milestone" checked><span class="track"></span></span>
+  </div>
+  <div class="note">照片正好是满月、百天、半岁、周岁、两周岁那天时，照片上方会自动多一个小徽章，不想加可以关掉。</div>
+  <div class="divider" id="printDivider"></div>
+  <div class="row" id="printRow"><label>打印尺寸</label><span class="val" id="printVal">原图</span></div>
+  <div class="chips" id="printChips"></div>
+  <div class="note" id="printNote" style="margin-top:8px">不改尺寸，按原图分辨率生成。</div>
+  <div id="fitRow" style="display:none">
+    <div class="row"><label>填充方式</label></div>
+    <div class="chips" id="fitChips"></div>
+    <div class="note" style="margin-top:8px">裁剪填满：画面铺满整张相纸，边缘会裁掉一点；完整留白：照片一点不裁，多出的地方留白边。注意：照片比例和格子接近时（比如竖拍照片拼版、中间留白拉到0），两种填法本来就几乎一样，横拍或方形照片区别最明显。</div>
+  </div>
+  <div class="divider"></div>
+  <div class="row"><label>四周留白（打印防切边）</label><span class="val" id="marginVal">0 mm</span></div>
+  <input type="range" id="marginRange" min="0" max="8" step="1" value="0">
+  <div class="note">普通打印机四边会吃掉几毫米，留一点白边，照片和水印会整体往里收，怎么打都不会被切到。只在选了打印尺寸或拼版时生效。</div>
+</div>
+
+<div class="btns" id="btns">
+  <button id="again">换一张</button>
+  <button id="save">生成成品图</button>
+</div>
+
+<div id="resultBox">
+  <div class="hint">成品图好了，长按图片就能保存到相册</div>
+  <img id="resultImg" alt="加好水印的照片">
+</div>
+
+<p class="tips">小提示：如果照片是微信转发来的，拍摄时间可能已被抹掉，那就手动改一下照片日期。选了打印尺寸时，按 300 dpi 生成对应像素，拿去冲印店或家用照片打印机正好是那个尺寸；选原图则按原图分辨率生成。</p>
+
+<script>
+// ---------- 年龄计算 ----------
+function parseDateStr(s){const p=String(s).split('-').map(Number);return new Date(p[0],(p[1]||1)-1,p[2]||1);}
+function toDateStr(d){const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return d.getFullYear()+'-'+m+'-'+day;}
+function fmtDate(d){const m=String(d.getMonth()+1).padStart(2,'0');const day=String(d.getDate()).padStart(2,'0');return d.getFullYear()+'.'+m+'.'+day;}
+function addMonths(date,n){const d=new Date(date.getFullYear(),date.getMonth(),1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(date.getDate(),last));return d;}
+function calcAge(birth,photo){const b=new Date(birth.getFullYear(),birth.getMonth(),birth.getDate());const p=new Date(photo.getFullYear(),photo.getMonth(),photo.getDate());const totalDays=Math.round((p-b)/86400000);if(totalDays<0)return{valid:false,totalDays};let mt=(p.getFullYear()-b.getFullYear())*12+(p.getMonth()-b.getMonth());if(addMonths(b,mt)>p)mt-=1;const after=addMonths(b,mt);const days=Math.round((p-after)/86400000);return{valid:true,years:Math.floor(mt/12),months:mt%12,days,totalDays};}
+function milestoneFor(age){
+  if(!age||!age.valid) return '';
+  const mt=age.years*12+age.months;
+  if(mt===1&&age.days===0) return '满月啦';
+  if(age.totalDays===99||age.totalDays===100) return '百天快乐';
+  if(mt===6&&age.days===0) return '半岁啦';
+  if(mt===12&&age.days===0) return '一周岁啦';
+  if(mt===24&&age.days===0) return '两周岁啦';
+  return '';
+}
+function drawMilestone(ctx,W,H,text,scale){
+  if(!text) return;
+  const label='★ '+text+' ★';
+  const size=W*0.037*(scale||1);
+  setFont(ctx,size,'bold');
+  const tw=ctx.measureText(label).width;
+  const padX=size*0.9, padY=size*0.45;
+  const w=tw+padX*2, h=size+padY*2;
+  const x=(W-w)/2, y=H*0.035;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.25)';ctx.shadowBlur=W*0.008;ctx.shadowOffsetY=W*0.002;
+  ctx.fillStyle='rgba(179,129,60,0.94)';
+  roundRect(ctx,x,y,w,h,h/2);ctx.fill();
+  ctx.restore();
+  ctx.fillStyle='#fff8ec';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(label,W/2,y+h/2+size*0.05);
+}
+function extrasFor(single){
+  const name=($('babyName')&&$('babyName').value||'').trim();
+  let hw='', note='';
+  if(single){
+    const h=parseFloat($('babyHeight').value), w=parseFloat($('babyWeight').value);
+    const parts=[];
+    if(!isNaN(h)&&h>0) parts.push(h+'cm');
+    if(!isNaN(w)&&w>0) parts.push(w+'kg');
+    hw=parts.join(' · ');
+    note=($('customText').value||'').trim();
+  }
+  return {name, hw, note};
+}
+function dispTexts(mainText, dateText, ex){
+  return {
+    dispMain: ex.name? ex.name+' · '+mainText : mainText,
+    dispDate: ex.hw? dateText+' · '+ex.hw : dateText,
+    note: ex.note||''
+  };
+}
+function ageMainText(age){if(!age||!age.valid)return '';if(age.totalDays===0)return '出生第一天';const mt=age.years*12+age.months;if(mt===0)return age.days+'天';return mt+'个月'+age.days+'天';}
+
+// ---------- EXIF 拍摄时间 ----------
+function parseExifDate(buf){try{const dv=new DataView(buf);if(dv.byteLength<4||dv.getUint16(0)!==0xffd8)return null;let off=2;while(off<dv.byteLength-4){const marker=dv.getUint16(off);if((marker&0xff00)!==0xff00)break;const size=dv.getUint16(off+2);if(marker===0xffe1&&dv.getUint32(off+4)===0x45786966)return readTiff(dv,off+10);off+=2+size;}return null;}catch(e){return null;}}
+function readTiff(dv,t0){const little=dv.getUint16(t0)===0x4949;const g16=o=>dv.getUint16(t0+o,little);const g32=o=>dv.getUint32(t0+o,little);function findTag(ifd,tag){const n=g16(ifd);for(let i=0;i<n;i++){const e=ifd+2+i*12;if(g16(e)===tag)return e;}return -1;}function asciiVal(e){if(g16(e+2)!==2)return null;const cnt=g32(e+4);const base=cnt<=4?e+8:g32(e+8);let s='';for(let i=0;i<cnt-1;i++)s+=String.fromCharCode(dv.getUint8(t0+base+i));return s;}
+const ifd0=g32(4);let ds=null;const ptr=findTag(ifd0,0x8769);if(ptr>=0){const ex=g32(ptr+8);const dto=findTag(ex,0x9003);if(dto>=0)ds=asciiVal(dto);}if(!ds){const dt=findTag(ifd0,0x0132);if(dt>=0)ds=asciiVal(dt);}if(!ds)return null;const m=ds.match(/(\d{4}):(\d{2}):(\d{2})/);if(!m)return null;return new Date(+m[1],+m[2]-1,+m[3]);}
+
+// ---------- 水印绘制（与小程序版相同逻辑） ----------
+const FONT='"STKaiti","KaiTi","Kaiti SC","Songti SC",serif';
+function setFont(ctx,size,weight){ctx.font=(weight?weight+' ':'')+size+'px '+FONT;}
+function luminance(hex){const n=parseInt(String(hex).slice(1),16);if(isNaN(n))return 1;const r=(n>>16)&255,g=(n>>8)&255,b=n&255;return (0.299*r+0.587*g+0.114*b)/255;}
+function shadowFor(ctx,color,blur){ctx.shadowColor=luminance(color)<0.35?'rgba(255,255,255,0.55)':'rgba(0,0,0,0.45)';ctx.shadowBlur=blur;ctx.shadowOffsetY=blur*0.25;}
+function shadowOff(ctx){ctx.shadowColor='rgba(0,0,0,0)';ctx.shadowBlur=0;ctx.shadowOffsetY=0;}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+const drawFns={
+  classic(ctx,W,H,d){const s=d.scale,color=d.color;const x=W*0.075;const ms=W*0.062*s;const ds2=W*0.033*s;const daysSize=W*0.027*s;const noteSize=W*0.03*s;
+    ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    let cursor=H-W*0.05,daysBase=null,noteBase=null;
+    if(d.showDays){daysBase=cursor;cursor-=daysSize*1.55;}
+    if(d.note){noteBase=cursor;cursor-=noteSize*1.5;}
+    const dateBase=cursor;const lineY=dateBase-ds2*1.55;
+    shadowFor(ctx,color,W*0.008);setFont(ctx,ms);ctx.fillText(d.mainText,x,lineY-W*0.016);
+    const tw=ctx.measureText(d.mainText).width;ctx.fillRect(x,lineY,tw,Math.max(2,W*0.0038*s));
+    setFont(ctx,ds2);ctx.fillText(d.dateText,x,dateBase);
+    if(noteBase!==null){setFont(ctx,noteSize);ctx.fillText(d.note,x,noteBase);}
+    if(daysBase!==null){ctx.globalAlpha=0.92;setFont(ctx,daysSize);ctx.fillText('第 '+d.totalDays+' 天',x,daysBase);ctx.globalAlpha=1;}
+    shadowOff(ctx);},
+  minimal(ctx,W,H,d){const color=d.color;ctx.fillStyle=color;ctx.textAlign='right';ctx.textBaseline='alphabetic';shadowFor(ctx,color,W*0.007);setFont(ctx,W*0.032*d.scale);let text=d.mainText+'  ·  '+d.dateText;if(d.showDays)text+='  ·  第'+d.totalDays+'天';ctx.fillText(text,W*0.95,H-W*0.048);if(d.note){setFont(ctx,W*0.026*d.scale);ctx.fillText(d.note,W*0.95,H-W*0.048-W*0.055*d.scale);}shadowOff(ctx);},
+  badge(ctx,W,H,d){const color=d.color,s=d.scale;const cx=W*0.862,cy=W*0.155,r=W*0.104;ctx.save();ctx.translate(cx,cy);ctx.rotate(-0.13);ctx.strokeStyle=color;ctx.fillStyle=color;shadowFor(ctx,color,W*0.006);ctx.lineWidth=W*0.0058;ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();ctx.lineWidth=W*0.0022;ctx.beginPath();ctx.arc(0,0,r*0.84,0,Math.PI*2);ctx.stroke();ctx.textAlign='center';ctx.textBaseline='middle';let size=r*0.5*s;setFont(ctx,size,'bold');while(ctx.measureText(d.mainText).width>r*1.45&&size>r*0.18){size*=0.9;setFont(ctx,size,'bold');}ctx.fillText(d.mainText,0,d.showDays?-r*0.24:-r*0.16);setFont(ctx,r*0.27*s);ctx.fillText(d.dateText,0,d.showDays?r*0.22:r*0.38);if(d.showDays){setFont(ctx,r*0.2*s);ctx.fillText('第'+d.totalDays+'天',0,r*0.58);}ctx.restore();if(d.note){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='alphabetic';shadowFor(ctx,color,W*0.006);setFont(ctx,W*0.028*d.scale);ctx.fillText(d.note,W/2,H-W*0.04);}shadowOff(ctx);},
+  film(ctx,W,H,d){const barH=Math.max(H*0.085,W*0.11);ctx.fillStyle='rgba(12,12,12,0.55)';ctx.fillRect(0,H-barH,W,barH);ctx.fillStyle=d.color;ctx.textBaseline='middle';const size=barH*0.4*d.scale;setFont(ctx,size);ctx.textAlign='left';ctx.fillText(d.dateText,W*0.05,H-barH/2);ctx.textAlign='right';ctx.fillText(d.mainText,W*0.95,H-barH/2);if(d.note){ctx.textAlign='center';ctx.globalAlpha=0.92;setFont(ctx,size*0.82);ctx.fillText(d.note,W/2,H-barH/2);ctx.globalAlpha=1;}else if(d.showDays){ctx.textAlign='center';ctx.globalAlpha=0.85;setFont(ctx,size*0.82);ctx.fillText('第 '+d.totalDays+' 天',W/2,H-barH/2);ctx.globalAlpha=1;}},
+  pill(ctx,W,H,d){const size=W*0.034*d.scale;setFont(ctx,size);const text='第 '+d.totalDays+' 天 · '+d.mainText;const tw=ctx.measureText(text).width;const padX=size*0.85,padY=size*0.5;const w=tw+padX*2,h=size+padY*2;const x=W*0.05,y=W*0.045;const lightText=luminance(d.color)>0.8;ctx.save();ctx.shadowColor='rgba(0,0,0,0.25)';ctx.shadowBlur=W*0.01;ctx.shadowOffsetY=W*0.003;ctx.fillStyle=lightText?'rgba(30,26,22,0.55)':'rgba(255,255,255,0.92)';roundRect(ctx,x,y,w,h,h/2);ctx.fill();ctx.restore();ctx.fillStyle=lightText?d.color:(d.color==='#ffffff'?'#4a4239':d.color);ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(text,x+padX,y+h/2+size*0.04);if(d.note){shadowFor(ctx,d.color,W*0.006);ctx.fillStyle=d.color;setFont(ctx,W*0.028*d.scale);ctx.fillText(d.note,W*0.05,H-W*0.045);shadowOff(ctx);}},
+  polaroid(ctx,W,H,d){const stripH=H-d.stripTop;const color=d.color==='#ffffff'?'#3d3831':d.color;ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';setFont(ctx,W*0.048*d.scale);ctx.fillText(d.mainText,W/2,d.stripTop+stripH*0.36);ctx.fillStyle='#9a917f';setFont(ctx,W*0.03*d.scale);let text=d.dateText;if(d.showDays)text+='  ·  第'+d.totalDays+'天';ctx.fillText(text,W/2,d.stripTop+stripH*0.68);if(d.note){ctx.fillStyle='#9a917f';setFont(ctx,W*0.026*d.scale);ctx.fillText(d.note,W/2,d.stripTop+stripH*0.9);}}
+};
+const STYLES=[['classic','经典款'],['minimal','极简款'],['badge','印章款'],['film','胶片款'],['pill','天数贴'],['polaroid','拍立得']];
+const COLORS=[['#ffffff','奶白'],['#f7e7c3','奶油'],['#d9a441','暖金'],['#f2b8c6','浅粉'],['#9db38f','豆绿'],['#6b4a2f','深棕'],['#2b2620','墨黑']];
+// 打印尺寸：300 dpi，[id, 名称, 短边像素, 长边像素, 毫米标注]
+const PRINT_SIZES=[['orig','原图',0,0,''],['4','4寸',900,1200,'76×102mm'],['5','5寸',1050,1500,'89×127mm'],['6','6寸',1200,1800,'102×152mm'],['7','7寸',1500,2100,'127×178mm'],['8','8寸',1800,2400,'152×203mm'],['10','10寸',2400,3000,'203×254mm']];
+const FIT_MODES=[['crop','裁剪填满'],['fit','完整留白']];
+let printSize='orig', fitMode='crop';
+let marginMm=0, milestoneOn=true;
+function printTarget(){
+  const spec=PRINT_SIZES.find(x=>x[0]===printSize);
+  if(!spec||printSize==='orig') return null;
+  const landscape=img&&img.naturalWidth>=img.naturalHeight;
+  const w=landscape?spec[3]:spec[2];
+  const h=landscape?spec[2]:spec[3];
+  return {id:spec[0],label:spec[1],w,h,mm:spec[4]};
+}
+function drawImageCover(ctx,dx,dy,dw,dh){
+  const iw=img.naturalWidth,ih=img.naturalHeight;
+  const srcRatio=iw/ih,dstRatio=dw/dh;
+  let sx=0,sy=0,sw=iw,sh=ih;
+  if(srcRatio>dstRatio){sw=Math.round(ih*dstRatio);sx=Math.round((iw-sw)/2);}
+  else if(srcRatio<dstRatio){sh=Math.round(iw/dstRatio);sy=Math.round((ih-sh)/2);}
+  ctx.drawImage(img,sx,sy,sw,sh,dx,dy,dw,dh);
+}
+function drawImageContain(ctx,dx,dy,dw,dh){
+  const iw=img.naturalWidth,ih=img.naturalHeight;
+  const k=Math.min(dw/iw,dh/ih);
+  const w=Math.round(iw*k),h=Math.round(ih*k);
+  ctx.drawImage(img,dx+Math.round((dw-w)/2),dy+Math.round((dh-h)/2),w,h);
+}
+function drawInto(ctx,dx,dy,dw,dh){
+  if(fitMode==='fit') drawImageContain(ctx,dx,dy,dw,dh); else drawImageCover(ctx,dx,dy,dw,dh);
+}
+function coverFor(ctx,im,dx,dy,dw,dh){
+  const iw=im.naturalWidth,ih=im.naturalHeight;
+  const srcRatio=iw/ih,dstRatio=dw/dh;
+  let sx=0,sy=0,sw=iw,sh=ih;
+  if(srcRatio>dstRatio){sw=Math.round(ih*dstRatio);sx=Math.round((iw-sw)/2);}
+  else if(srcRatio<dstRatio){sh=Math.round(iw/dstRatio);sy=Math.round((ih-sh)/2);}
+  ctx.drawImage(im,sx,sy,sw,sh,dx,dy,dw,dh);
+}
+function containFor(ctx,im,dx,dy,dw,dh){
+  const iw=im.naturalWidth,ih=im.naturalHeight;
+  const k=Math.min(dw/iw,dh/ih);
+  const w=Math.round(iw*k),h=Math.round(ih*k);
+  ctx.drawImage(im,dx+Math.round((dw-w)/2),dy+Math.round((dh-h)/2),w,h);
+}
+function drawIntoFor(ctx,im,dx,dy,dw,dh){
+  if(fitMode==='fit') containFor(ctx,im,dx,dy,dw,dh); else coverFor(ctx,im,dx,dy,dw,dh);
+}
+// ---------- 拼版模式：两张4寸（900×1200）并排 = 一张6寸（1800×1200） ----------
+let mode='single';
+let duoImgs=[null,null,null];
+let layout='duo';
+try{const l=localStorage.getItem('babyLayout');if(l==='big2'||l==='duo')layout=l;}catch(e){}
+let cutLineOn=false;
+try{cutLineOn=localStorage.getItem('babyCut')==='1';}catch(e){}
+let exportMode=false;
+const DUO_W=1800, DUO_H=1200, CELL_W=900, CELL_H=1200;
+let duoGap=60;
+try{const g=parseInt(localStorage.getItem('babyGap'));if(!isNaN(g)&&g>=0&&g<=180)duoGap=g;}catch(e){}
+function ageDataFor(pdStr){
+  const birthStr=$('birth').value;
+  if(!birthStr) return {err:'先填宝宝出生日期'};
+  if(!pdStr) return {err:'还没选照片日期'};
+  const age=calcAge(parseDateStr(birthStr),parseDateStr(pdStr));
+  if(!age.valid) return {err:'照片日期比出生日期还早'};
+  const mt0=ageMainText(age), dt0=fmtDate(parseDateStr(pdStr));
+  return {age, mainText:mt0, dateText:dt0, milestone:milestoneOn?milestoneFor(age):'', ...dispTexts(mt0,dt0,extrasFor(false))};
+}
+function renderCell(ctx,im,d,W,H){
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  let px=0,py=0,pw=W,ph=H,stripTop=0;
+  if(styleId==='polaroid'&&d){
+    const side=Math.round(W*0.06);const bottom=Math.round(H*0.22);
+    px=side;py=side;pw=W-side*2;ph=H-side-bottom;stripTop=py+ph;
+    ctx.fillStyle='#fffdf8';ctx.fillRect(0,0,W,H);
+  }
+  drawIntoFor(ctx,im,px,py,pw,ph);
+  if(d){ drawFns[styleId](ctx,W,H,{...d,stripTop}); drawMilestone(ctx,W,H,d.milestone,d.scale); }
+}
+function duoCells(){
+  const mPx=Math.round(marginMm*300/25.4);
+  const innerW=DUO_W-2*mPx, innerH=DUO_H-2*mPx, g=duoGap;
+  if(layout==='big2'){
+    const w1=Math.round((innerW-g)*0.55);
+    const w2=innerW-g-w1;
+    const h2=(innerH-g)/2;
+    return {mPx,innerW,innerH,cells:[
+      {x:mPx,y:mPx,w:w1,h:innerH},
+      {x:mPx+w1+g,y:mPx,w:w2,h:h2},
+      {x:mPx+w1+g,y:mPx+h2+g,w:w2,h:h2}
+    ]};
+  }
+  const cellW=(innerW-g)/2;
+  return {mPx,innerW,innerH,cells:[
+    {x:mPx,y:mPx,w:cellW,h:innerH},
+    {x:mPx+cellW+g,y:mPx,w:cellW,h:innerH}
+  ]};
+}
+function redrawDuo(){
+  const cv=$('cv'),ctx=cv.getContext('2d');
+  cv.width=DUO_W;cv.height=DUO_H;
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,DUO_W,DUO_H);
+  const {cells}=duoCells();
+  const dateEls=[$('duoDate1'),$('duoDate2'),$('duoDate3')];
+  const lines=[];
+  cells.forEach((cell,i)=>{
+    const im=duoImgs[i];
+    const data=ageDataFor(dateEls[i].value);
+    ctx.save();
+    ctx.beginPath();ctx.rect(cell.x,cell.y,cell.w,cell.h);ctx.clip();
+    ctx.translate(cell.x,cell.y);
+    if(im){
+      const d=data.err?null:{mainText:data.dispMain,dateText:data.dispDate,totalDays:data.age.totalDays,milestone:data.milestone,note:'',...settings()};
+      renderCell(ctx,im,d,cell.w,cell.h);
+      lines.push('第'+(i+1)+'张：'+(data.err?data.err:data.mainText+(data.milestone?' · 🎉 '+data.milestone:'')));
+    }else{
+      ctx.fillStyle='#f8f3e8';ctx.fillRect(0,0,cell.w,cell.h);
+      ctx.fillStyle='#a29885';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font='44px sans-serif';
+      ctx.fillText('第'+(i+1)+'张照片',cell.w/2,cell.h/2);
+      lines.push('第'+(i+1)+'张：还没选');
+    }
+    ctx.restore();
+  });
+  const guides=(style,width,dashed)=>{
+    ctx.save();ctx.strokeStyle=style;ctx.lineWidth=width;ctx.setLineDash(dashed?[20,14]:[]);
+    const c=cells;
+    ctx.beginPath();ctx.moveTo(c[1].x-duoGap/2,c[0].y);ctx.lineTo(c[1].x-duoGap/2,c[0].y+c[0].h);ctx.stroke();
+    if(layout==='big2'){ctx.beginPath();ctx.moveTo(c[1].x,c[2].y-duoGap/2);ctx.lineTo(c[1].x+c[1].w,c[2].y-duoGap/2);ctx.stroke();}
+    ctx.restore();
+  };
+  if(!exportMode){ guides('rgba(60,50,35,0.45)',3,true); }
+  else if(cutLineOn){ guides('rgba(0,0,0,0.16)',3,false); }
+  $('duoAgeLine').style.display='block';
+  $('duoAgeLine').textContent=lines.join('　·　');
+}
+
+// ---------- 页面逻辑 ----------
+const $=id=>document.getElementById(id);
+let img=null, styleId='classic', color='#ffffff';
+const MAX_EDGE=Infinity; // 不缩放原图
+
+STYLES.forEach(([id,name])=>{const b=document.createElement('button');b.className='chip'+(id===styleId?' on':'');b.textContent=name;b.onclick=()=>{styleId=id;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));b.classList.add('on');hideResult();redraw();};$('chips').appendChild(b);});
+COLORS.forEach(([v,n])=>{const b=document.createElement('button');b.className='sw'+(v===color?' on':'');b.style.background=v;b.title=n;b.onclick=()=>{color=v;document.querySelectorAll('.sw').forEach(c=>c.classList.remove('on'));b.classList.add('on');$('customColor').value=v;hideResult();redraw();};$('swatches').appendChild(b);});
+const customWrap=document.createElement('span');customWrap.className='custom';customWrap.innerHTML='自定义 <input type="color" id="customColor" value="#ffffff">';
+$('swatches').appendChild(customWrap);
+$('customColor').addEventListener('input',e=>{color=e.target.value;document.querySelectorAll('.sw').forEach(c=>c.classList.remove('on'));hideResult();redraw();});
+PRINT_SIZES.forEach(([id,name])=>{const b=document.createElement('button');b.className='chip'+(id===printSize?' on':'');b.textContent=name;b.dataset.pid=id;b.onclick=()=>{printSize=id;document.querySelectorAll('#printChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.pid===id));updatePrintUI();persist();hideResult();redraw();};$('printChips').appendChild(b);});
+FIT_MODES.forEach(([id,name])=>{const b=document.createElement('button');b.className='chip'+(id===fitMode?' on':'');b.textContent=name;b.dataset.fid=id;b.onclick=()=>{fitMode=id;document.querySelectorAll('#fitChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.fid===id));persist();hideResult();redraw();};$('fitChips').appendChild(b);});
+function updatePrintUI(){
+  const t=printTarget();
+  if(!t){$('printVal').textContent='原图';$('printNote').textContent='不改尺寸，按原图分辨率生成。';$('fitRow').style.display='none';return;}
+  $('printVal').textContent=t.label;
+  $('printNote').textContent=t.label+' · '+t.mm+' · 生成 '+t.w+'×'+t.h+' 像素（300 dpi），方向跟原照片一致（横的还是横的、竖的还是竖的）。';
+  $('fitRow').style.display='block';
+}
+
+const saved=JSON.parse(localStorage.getItem('wmSettings')||'{}');
+if(saved.scale){$('scale').value=saved.scale;$('scaleVal').textContent=saved.scale+'%';}
+if(saved.showDays===true)$('showDays').checked=true;
+if(saved.printSize&&PRINT_SIZES.some(x=>x[0]===saved.printSize)){printSize=saved.printSize;document.querySelectorAll('#printChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.pid===printSize));}
+if(saved.fitMode&&(saved.fitMode==='crop'||saved.fitMode==='fit')){fitMode=saved.fitMode;document.querySelectorAll('#fitChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.fid===fitMode));}
+if(typeof saved.marginMm==='number'&&saved.marginMm>=0&&saved.marginMm<=8){marginMm=saved.marginMm;}
+if(saved.milestone===false){milestoneOn=false;}
+const savedName=localStorage.getItem('babyName');
+if(savedName) $('babyName').value=savedName;
+$('babyName').addEventListener('input',()=>{localStorage.setItem('babyName',$('babyName').value);hideResult();redraw();});
+['babyHeight','babyWeight','customText'].forEach(id=>$(id).addEventListener('input',()=>{hideResult();redraw();}));
+const savedBirth=localStorage.getItem('babyBirth');
+if(savedBirth) $('birth').value=savedBirth;
+function persist(){localStorage.setItem('wmSettings',JSON.stringify({scale:+$('scale').value,showDays:$('showDays').checked,printSize:printSize,fitMode:fitMode,marginMm:marginMm,milestone:milestoneOn}));}
+$('birth').addEventListener('change',()=>{localStorage.setItem('babyBirth',$('birth').value);hideResult();redraw();if(mode==='batch'&&batchItems.length)renderBatchList();});
+$('photoDate').addEventListener('change',()=>{$('dateNote').textContent='手动设置的照片日期';hideResult();redraw();});
+$('scale').addEventListener('input',()=>{$('scaleVal').textContent=$('scale').value+'%';persist();hideResult();redraw();});
+$('showDays').addEventListener('change',()=>{persist();hideResult();redraw();});
+$('marginRange').value=marginMm;$('marginVal').textContent=marginMm+' mm';
+$('marginRange').addEventListener('input',()=>{marginMm=+$('marginRange').value;$('marginVal').textContent=marginMm+' mm';persist();hideResult();redraw();});
+$('milestone').checked=milestoneOn;
+$('milestone').addEventListener('change',()=>{milestoneOn=$('milestone').checked;persist();hideResult();redraw();});
+$('pick').onclick=()=>$('file').click();
+$('again').onclick=()=>$('file').click();
+$('file').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{const buf=await f.arrayBuffer();const d=parseExifDate(buf);if(d){$('photoDate').value=toDateStr(d);$('dateNote').textContent='已自动读取照片的拍摄时间';}else{$('photoDate').value=toDateStr(new Date());$('dateNote').textContent='没读到拍摄时间，先用今天，可手动改';}}catch(err){$('photoDate').value=toDateStr(new Date());}
+  const url=URL.createObjectURL(f); const im=new Image();
+  im.onload=()=>{img=im;updatePrintUI();$('pick').style.display='none';$('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';hideResult();redraw();};
+  im.src=url;
+});
+
+function currentAge(){
+  const birthStr=$('birth').value, pdStr=$('photoDate').value;
+  if(!birthStr) return {err:'先选一下宝宝的出生日期 👆'};
+  const age=calcAge(parseDateStr(birthStr),parseDateStr(pdStr));
+  if(!age.valid) return {err:'照片日期比出生日期还早，检查一下两个日期'};
+  const mt0=ageMainText(age), dt0=fmtDate(parseDateStr(pdStr));
+  return {age, mainText:mt0, dateText:dt0, milestone:milestoneOn?milestoneFor(age):'', ...dispTexts(mt0,dt0,extrasFor(mode==='single'))};
+}
+function settings(){return {scale:+$('scale').value/100, color:color, showDays:$('showDays').checked};}
+
+function redraw(){
+  if(mode==='duo'){ if(duoImgs[0]||duoImgs[1]||duoImgs[2]) redrawDuo(); return; }
+  if(mode==='batch'&&!batchBusy){ updateBatchPreview(); return; }
+  if(!img) return;
+  const r=currentAge();
+  $('ageLine').style.display=mode==='batch'?'none':'block';
+  if(r.err){$('ageLine').textContent=r.err;drawOnly(null);return;}
+  $('ageLine').innerHTML='宝宝这天 <b>'+r.mainText+'</b> 啦 · 来到世界第 '+r.age.totalDays+' 天'+(r.milestone?' · 🎉 '+r.milestone:'');
+  drawOnly({mainText:r.dispMain,dateText:r.dispDate,totalDays:r.age.totalDays,milestone:r.milestone,note:r.note,...settings()});
+}
+
+function drawOnly(d){
+  const cv=$('cv'),ctx=cv.getContext('2d');
+  const w=img.naturalWidth,h=img.naturalHeight;
+  const target=d?printTarget():null;
+  if(target){
+    // 打印尺寸模式：成品画布严格等于目标像素；四周留白时内容整体内缩，画布尺寸不变
+    cv.width=target.w;cv.height=target.h;
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,target.w,target.h);
+    const mPx=Math.round(marginMm*300/25.4);
+    const ix=mPx, iy=mPx, iw=target.w-2*mPx, ih=target.h-2*mPx;
+    if(styleId==='polaroid'){
+      const side=Math.round(iw*0.06);
+      const bottom=Math.round(ih*0.22);
+      const pw=iw-side*2, ph=ih-side-bottom, stripTop=side+ph;
+      ctx.fillStyle='#fffdf8';ctx.fillRect(ix,iy,iw,ih);
+      drawInto(ctx,ix+side,iy+side,pw,ph);
+      ctx.save();ctx.translate(ix,iy);
+      drawFns[styleId](ctx,iw,ih,{...d,stripTop});
+      if(d) drawMilestone(ctx,iw,ih,d.milestone,d.scale);
+      ctx.restore();
+      return;
+    }
+    drawInto(ctx,ix,iy,iw,ih);
+    ctx.save();ctx.translate(ix,iy);
+    drawFns[styleId](ctx,iw,ih,{...d,stripTop:0});
+    if(d) drawMilestone(ctx,iw,ih,d.milestone,d.scale);
+    ctx.restore();
+    return;
+  }
+  const k=Math.min(1,MAX_EDGE/Math.max(w,h));
+  let cw=Math.round(w*k),ch=Math.round(h*k),px=0,py=0,stripTop=0;
+  if(styleId==='polaroid'&&d){const side=Math.round(cw*0.06);const bottom=Math.round(cw*0.26);px=side;py=side;stripTop=side+ch;cw+=side*2;ch+=side+bottom;}
+  cv.width=cw;cv.height=ch;
+  if(styleId==='polaroid'&&d){ctx.fillStyle='#fffdf8';ctx.fillRect(0,0,cw,ch);}
+  ctx.drawImage(img,px,py,Math.round(w*k),Math.round(h*k));
+  if(d){ drawFns[styleId](ctx,cw,ch,{...d,stripTop}); drawMilestone(ctx,cw,ch,d.milestone,d.scale); }
+}
+
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('#modeChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.mode===m));
+  hideResult();
+  $('previewNote').style.display='none';
+  if(m==='duo'){
+    $('modeNote').textContent='两张照片左右并排拼成一张横的6寸图：打印时选6寸、横向，印出来沿正中间竖着裁开，就是两张4寸。每张照片的水印按它自己的拍摄日期算。';
+    $('pick').style.display='none';
+    $('duoBox').style.display='block';
+    $('batchBox').style.display='none';
+    $('hwRow').style.display='none';
+    $('customRow').style.display='none';
+    $('photoDateRow').style.display='none';
+    $('dateNote').style.display='none';
+    $('ageLine').style.display='none';
+    $('printChips').style.display='none';
+    $('printVal').textContent='6寸拼版';
+    $('printNote').textContent='固定生成 1800×1200 像素（6寸横版，300 dpi）；中间留白在上面选照片的地方拉条调。';
+    $('fitRow').style.display='block';
+    $('again').style.display='none';
+    if(duoImgs[0]||duoImgs[1]||duoImgs[2]){$('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';redrawDuo();}
+    else{$('cvWrap').style.display='none';}
+  }else if(m==='batch'){
+    $('modeNote').textContent='一次选多张照片，每张按自己的拍摄日期算年龄，套同一套样式和设置，一张一张自动生成保存。';
+    $('pick').style.display='none';
+    $('duoBox').style.display='none';
+    $('batchBox').style.display='block';
+    $('photoDateRow').style.display='none';
+    $('dateNote').style.display='none';
+    $('ageLine').style.display='none';
+    $('hwRow').style.display='none';
+    $('customRow').style.display='none';
+    $('printChips').style.display='flex';
+    updatePrintUI();
+    $('btns').style.display='none';
+    if(batchItems.length){$('styleCard').style.display='block';updateBatchPreview();}
+    else{$('cvWrap').style.display='none';}
+  }else{
+    $('modeNote').textContent='一张一张做，尺寸在下面选。';
+    $('duoBox').style.display='none';
+    $('batchBox').style.display='none';
+    $('hwRow').style.display='';
+    $('customRow').style.display='';
+    $('photoDateRow').style.display='flex';
+    $('dateNote').style.display='block';
+    $('printChips').style.display='flex';
+    $('again').style.display='';
+    updatePrintUI();
+    if(img){$('pick').style.display='none';$('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';redraw();}
+    else{$('pick').style.display='block';$('cvWrap').style.display='none';$('btns').style.display='none';}
+  }
+}
+document.querySelectorAll('#modeChips .chip').forEach(c=>{c.onclick=()=>setMode(c.dataset.mode);});
+
+// ---------- 批量模式 ----------
+let batchItems=[];
+let batchKind='single';
+let batchBusy=false, batchPreviewIdx=0;
+document.querySelectorAll('#batchKindChips .chip').forEach(c=>{c.onclick=()=>{batchKind=c.dataset.kind;document.querySelectorAll('#batchKindChips .chip').forEach(x=>x.classList.toggle('on',x.dataset.kind===batchKind));updateBatchPreview();};});
+function updateBatchPreview(){
+  if(mode!=='batch'||!batchItems.length) return;
+  batchBusy=true;
+  try{
+    $('cvWrap').style.display='block';
+    $('styleCard').style.display='block';
+    const note=$('previewNote');note.style.display='block';
+    if(batchKind==='single'){
+      const idx=Math.min(batchPreviewIdx,batchItems.length-1);
+      const it=batchItems[idx];
+      img=it.im;$('photoDate').value=it.dateStr;
+      redraw();
+      note.textContent='预览：第 '+(idx+1)+' 张的效果（点下面列表里任意一行，可以换一张看）';
+    }else{
+      const gs=batchKind==='duo'?2:3;
+      setLayout(batchKind);
+      const dateEls=[$('duoDate1'),$('duoDate2'),$('duoDate3')];
+      for(let i=0;i<gs;i++){const src=batchItems[Math.min(i,batchItems.length-1)];duoImgs[i]=src.im;dateEls[i].value=src.dateStr;}
+      exportMode=false;redrawDuo();
+      note.textContent='预览：第一组拼版的效果（共 '+batchItems.length+' 张，将拼成 '+Math.ceil(batchItems.length/gs)+' 张）';
+    }
+  }finally{batchBusy=false;}
+}
+function renderBatchList(){
+  const box=$('batchList');box.innerHTML='';
+  const updAge=()=>{
+    batchItems.forEach(it=>{
+      if(!it._ageEl) return;
+      const b=$('birth').value;
+      if(!b){it._ageEl.textContent='先填出生日期';return;}
+      if(!it.dateStr){it._ageEl.textContent='选一下日期';return;}
+      const a=calcAge(parseDateStr(b),parseDateStr(it.dateStr));
+      it._ageEl.textContent=a.valid?ageMainText(a):'日期不对';
+    });
+  };
+  batchItems.forEach((it,i)=>{
+    const row=document.createElement('div');row.className='brow';row.style.cursor='pointer';
+    row.addEventListener('click',e=>{if(e.target.tagName==='INPUT')return;batchPreviewIdx=i;updateBatchPreview();});
+    const th=document.createElement('img');th.src=it.url||'';th.alt='';th.style.cssText='width:44px;height:44px;object-fit:cover;border-radius:8px;flex:none';
+    row.appendChild(th);
+    const label=document.createElement('span');label.textContent='第'+(i+1)+'张';
+    const din=document.createElement('input');din.type='date';din.value=it.dateStr;
+    din.addEventListener('change',()=>{it.dateStr=din.value;updAge();});
+    const age=document.createElement('span');age.className='bage';
+    row.appendChild(label);row.appendChild(din);row.appendChild(age);
+    box.appendChild(row);
+    it._ageEl=age;
+  });
+  updAge();
+  $('batchCard').style.display=batchItems.length?'block':'none';
+}
+$('pickBatch').onclick=()=>$('fileBatch').click();
+$('fileBatch').addEventListener('change',async e=>{
+  const files=[...e.target.files];
+  e.target.value='';
+  if(!files.length) return;
+  batchItems=[];
+  for(const f of files){
+    let ds=toDateStr(new Date());
+    try{const buf=await f.arrayBuffer();const d=parseExifDate(buf);if(d)ds=toDateStr(d);}catch(err){}
+    const url=URL.createObjectURL(f);
+    const im=await new Promise(res=>{const i2=new Image();i2.onload=()=>res(i2);i2.onerror=()=>res(null);i2.src=url;});
+    if(im) batchItems.push({im,dateStr:ds,url});
+  }
+  if(batchItems.length){$('styleCard').style.display='block';renderBatchList();updateBatchPreview();}
+});
+$('batchGo').onclick=async ()=>{
+  if(!batchItems.length){alert('先选照片');return;}
+  if(!$('birth').value){alert('先填宝宝出生日期');return;}
+  const results=$('batchResults');results.innerHTML='';
+  const hd=document.createElement('div');hd.className='note';hd.style.cssText='margin-top:14px;font-weight:600;color:#8a6d3b';hd.textContent='成品图（长按图片可以保存到相册）';results.appendChild(hd);
+  const status=$('batchStatus');
+  batchBusy=true;
+  if(batchKind!=='single'){
+    const gs=batchKind==='duo'?2:3;
+    setLayout(batchKind);
+    const dateEls=[$('duoDate1'),$('duoDate2'),$('duoDate3')];
+    const groups=[];
+    for(let i=0;i<batchItems.length;i+=gs) groups.push(batchItems.slice(i,i+gs));
+    let made=0, filled=0;
+    for(let g=0;g<groups.length;g++){
+      const grp=groups[g];
+      if(grp.length<gs) filled++;
+      for(let i=0;i<gs;i++){
+        const src=grp[Math.min(i,grp.length-1)];
+        duoImgs[i]=src.im;
+        dateEls[i].value=src.dateStr;
+      }
+      const bad=grp.map(it=>ageDataFor(it.dateStr)).find(b=>b.err);
+      if(bad){status.textContent='第'+(g+1)+'组跳过了：'+bad.err;continue;}
+      exportMode=true;redrawDuo();exportMode=false;
+      const url=$('cv').toDataURL('image/jpeg',1.0);
+      const imEl=document.createElement('img');imEl.src=url;imEl.alt='第'+(g+1)+'组拼版成品';
+      results.appendChild(imEl);
+      try{const a=document.createElement('a');a.download='宝宝水印-6寸拼版-'+grp[0].dateStr+'-第'+(g+1)+'组.jpg';a.href=url;a.click();}catch(e){}
+      made++;
+      status.textContent='已拼好 '+made+' / '+groups.length+' 组';
+      await new Promise(r2=>setTimeout(r2,350));
+    }
+    status.textContent='全部完成：'+batchItems.length+' 张照片拼成了 '+made+' 张6寸图'+(filled?'（最后一组不够数，用最后一张补齐了空位）':'')+'。下载没自动弹出来的话，长按下面的图也能保存';
+    batchBusy=false;updateBatchPreview();
+    results.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  const t0=printTarget();
+  const label=t0?t0.label:'原图';
+  let done=0;
+  for(let i=0;i<batchItems.length;i++){
+    const it=batchItems[i];
+    img=it.im;
+    $('photoDate').value=it.dateStr;
+    const r=currentAge();
+    if(r.err){status.textContent='第'+(i+1)+'张跳过了：'+r.err;continue;}
+    redraw();
+    const url=$('cv').toDataURL('image/jpeg',1.0);
+    const imEl=document.createElement('img');imEl.src=url;imEl.alt='第'+(i+1)+'张成品图';
+    results.appendChild(imEl);
+    try{const a=document.createElement('a');a.download='宝宝水印-'+label+'-'+it.dateStr+'-'+(i+1)+'.jpg';a.href=url;a.click();}catch(e){}
+    done++;
+    status.textContent='已生成 '+done+' / '+batchItems.length+' 张';
+    await new Promise(r2=>setTimeout(r2,350));
+  }
+  status.textContent='全部完成：共 '+done+' 张。下载没自动弹出来的话，长按下面的成品图也能保存';
+  batchBusy=false;updateBatchPreview();
+  results.scrollIntoView({behavior:'smooth',block:'start'});
+};
+async function handleDuoFile(idx,f){
+  if(!f) return;
+  try{const buf=await f.arrayBuffer();const d=parseExifDate(buf);const el=[$('duoDate1'),$('duoDate2'),$('duoDate3')][idx];if(d){el.value=toDateStr(d);}else if(!el.value){el.value=toDateStr(new Date());}}catch(err){}
+  const url=URL.createObjectURL(f);const im=new Image();
+  im.onload=()=>{duoImgs[idx]=im;[$('pick1'),$('pick2'),$('pick3')][idx].classList.add('done');$('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';hideResult();redrawDuo();};
+  im.src=url;
+}
+$('pick1').onclick=()=>$('file1').click();
+$('pick2').onclick=()=>$('file2').click();
+$('pick3').onclick=()=>$('file3').click();
+$('file1').addEventListener('change',e=>handleDuoFile(0,e.target.files[0]));
+$('file2').addEventListener('change',e=>handleDuoFile(1,e.target.files[0]));
+$('file3').addEventListener('change',e=>handleDuoFile(2,e.target.files[0]));
+$('duoDate3').addEventListener('change',()=>{hideResult();redraw();});
+function setLayout(l){
+  layout=l;
+  document.querySelectorAll('#layoutChips .chip').forEach(c=>c.classList.toggle('on',c.dataset.layout===l));
+  try{localStorage.setItem('babyLayout',l);}catch(e){}
+  const big=l==='big2';
+  $('pick3').style.display=big?'block':'none';
+  $('duoDate3Row').style.display=big?'flex':'none';
+  hideResult();
+  if(mode==='duo'&&(duoImgs[0]||duoImgs[1]||duoImgs[2])) redrawDuo();
+}
+document.querySelectorAll('#layoutChips .chip').forEach(c=>{c.onclick=()=>setLayout(c.dataset.layout);});
+setLayout(layout);
+$('swapBtn').onclick=()=>{
+  if(!duoImgs[0]&&!duoImgs[1]){alert('先选照片再交换');return;}
+  const t=duoImgs[0];duoImgs[0]=duoImgs[1];duoImgs[1]=t;
+  const dv=$('duoDate1').value;$('duoDate1').value=$('duoDate2').value;$('duoDate2').value=dv;
+  $('pick1').classList.toggle('done',!!duoImgs[0]);
+  $('pick2').classList.toggle('done',!!duoImgs[1]);
+  $('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';
+  hideResult();redrawDuo();
+};
+$('cutLine').checked=cutLineOn;
+$('cutLine').addEventListener('change',()=>{cutLineOn=$('cutLine').checked;try{localStorage.setItem('babyCut',cutLineOn?'1':'0');}catch(e){}hideResult();});
+$('duoDate1').addEventListener('change',()=>{hideResult();redraw();});
+$('duoDate2').addEventListener('change',()=>{hideResult();redraw();});
+$('copySame').onclick=()=>{
+  if(!duoImgs[0]){alert('先选第一张照片');return;}
+  const n=layout==='big2'?3:2;
+  const dateEls=[$('duoDate1'),$('duoDate2'),$('duoDate3')];
+  const picks=[$('pick1'),$('pick2'),$('pick3')];
+  for(let i=1;i<n;i++){duoImgs[i]=duoImgs[0];dateEls[i].value=dateEls[0].value;picks[i].classList.add('done');}
+  $('cvWrap').style.display='block';$('styleCard').style.display='block';$('btns').style.display='flex';
+  hideResult();redrawDuo();
+};
+(function(){
+  const gr=$('gapRange');
+  gr.value=duoGap;
+  const sync=()=>{$('gapVal').textContent=duoGap===0?'不留白':'约 '+(duoGap*25.4/300).toFixed(1).replace(/\.0$/,'')+' mm';};
+  sync();
+  gr.addEventListener('input',()=>{duoGap=+gr.value;try{localStorage.setItem('babyGap',String(duoGap));}catch(e){}sync();hideResult();redraw();});
+})();
+
+function hideResult(){$('resultBox').style.display='none';}
+
+$('save').onclick=()=>{
+  if(mode==='duo'){
+    const needN=layout==='big2'?3:2;
+    if(duoImgs.slice(0,needN).some(x=>!x)){alert((needN===3?'三':'两')+'张照片都选好才能生成拼版');return;}
+    const bs=[$('duoDate1'),$('duoDate2'),$('duoDate3')].slice(0,needN).map(el=>ageDataFor(el.value));
+    const bad=bs.find(b=>b.err);
+    if(bad){alert(bad.err);return;}
+    exportMode=true;redrawDuo();exportMode=false;
+    const urlDuo=$('cv').toDataURL('image/jpeg',1.0);
+    $('resultImg').src=urlDuo;
+    $('resultBox').style.display='block';
+    $('resultBox').querySelector('.hint').textContent=layout==='big2'?'拼版图好了，长按图片保存。打印选 6寸、横向、满版，这一版不用裁开':'拼版图好了，长按图片保存。打印选 6寸、横向、满版，沿正中间裁开就是两张 4寸';
+    try{const a=document.createElement('a');a.download=layout==='big2'?'宝宝水印-6寸拼版三张.jpg':'宝宝水印-6寸拼版两张4寸.jpg';a.href=urlDuo;a.click();}catch(e){}
+    redrawDuo();
+    setTimeout(()=>$('resultBox').scrollIntoView({behavior:'smooth',block:'center'}),80);
+    return;
+  }
+  if(!img) return;
+  const r=currentAge();
+  if(r.err){alert(r.err);return;}
+  redraw();
+  const url=$('cv').toDataURL('image/jpeg',1.0);
+  // 手机上最稳的保存方式：把成品图显示出来长按保存；同时尝试直接下载（电脑浏览器有效）
+  $('resultImg').src=url;
+  $('resultBox').querySelector('.hint').textContent='成品图好了，长按图片就能保存到相册';
+  $('resultBox').style.display='block';
+  try{const a=document.createElement('a');const t=printTarget();a.download='宝宝水印-'+(t?t.label+'-':'')+($('photoDate').value||'photo')+'.jpg';a.href=url;a.click();}catch(e){}
+  setTimeout(()=>$('resultBox').scrollIntoView({behavior:'smooth',block:'center'}),80);
+};
+</script>
+</body>
+</html>
